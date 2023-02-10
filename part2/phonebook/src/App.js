@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Filter from "./components/Filter";
 import PersonForm from "./components/PersonForm";
 import Persons from "./components/Persons";
-import axios from "axios";
+import axiosUtil from "./services";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
@@ -12,16 +12,14 @@ const App = () => {
   const [copy, setCopy] = useState(persons);
 
   React.useEffect(() => {
-    axios
-    .get('http://localhost:3001/persons')
-    .then((response) => {
-      setPersons(response.data)
-    })
+    axiosUtil.fetchData().then((response) => {
+      setPersons(response);
+    });
   }, []);
 
   React.useEffect(() => {
     setCopy(persons);
-  }, [persons])
+  }, [persons]);
 
   const handleTextChange = (event) => {
     setNewName(event.target.value);
@@ -45,13 +43,27 @@ const App = () => {
   };
   const addPerson = (event) => {
     event.preventDefault();
+    const newPerson = { name: newName, number: newNumber };
     if (uniqueName(newName)) {
-      setPersons([
-        ...persons,
-        { name: newName, number: newNumber, id: persons.length + 1 },
-      ]);
+      axiosUtil.create(newPerson).then((addedPerson) => {
+        setPersons([...persons, addedPerson]);
+      });
     } else {
-      alert(`${newName} is already added to phonebook`);
+      const message = `${newName} is already added to phonebook, replace the old number with a new one`
+      if (window.confirm(message)){
+        const existentUser = persons.find((person) => person.name.toLowerCase() === newPerson.name.toLowerCase())
+        const updatedPerson = {...existentUser, number : newPerson.number}
+        axiosUtil.update(existentUser.id, updatedPerson).then((response) => {
+          setPersons(
+            persons.map((person) => {
+              if (person.id === updatedPerson.id){
+                return updatedPerson
+              }
+              return person
+            })
+          )
+        })
+      }
     }
     setNewName("");
     setNewNumber("");
@@ -61,6 +73,14 @@ const App = () => {
       (n) => n.name.toLowerCase() === name.toLowerCase()
     );
     return found === undefined;
+  };
+
+  const handleDelete = (id) => {
+    const deletedPersonName = persons.find((person) => person.id === id);
+    if (window.confirm(`Delete ${deletedPersonName.name} ?`)) {
+      setPersons(persons.filter((person) => person.id !== id));
+      axiosUtil.deletePerson(id)
+    }
   };
   return (
     <div>
@@ -80,7 +100,7 @@ const App = () => {
 
       <h2>Numbers</h2>
 
-      <Persons data={copy}/>
+      <Persons data={copy} handleDelete={handleDelete} />
     </div>
   );
 };
