@@ -1,0 +1,18 @@
+.info > p{
+    margin : 0
+}
+
+.notif {
+
+    padding : 10px;
+    background-color: rgb(224, 227, 224);
+    border : 2px solid green;
+}
+.notification {
+    color: green;
+}
+
+.error {
+    border-color: red;
+    color: red;
+}
